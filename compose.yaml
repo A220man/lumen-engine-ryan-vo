@@ -1,0 +1,61 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
+      - DEBUG=${DEBUG:-true}
+      - DATABASE_URL=${DATABASE_URL:-sqlite+aiosqlite:///./lumen.db}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+    volumes:
+      - backend-data:/app/data
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      - keycloak
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import httpx; exit(0 if httpx.get('http://127.0.0.1:8000/api/v1/health').status_code==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "127.0.0.1:3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.5
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_DB=dev-file
+    command: start-dev
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - keycloak-data:/opt/keycloak/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080"]
+      interval: 30s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  backend-data:
+  keycloak-data:
