@@ -1,0 +1,1 @@
+{"compilerOptions":{"lib":["ESNext","DOM"],"lang":"typescript","types":["vite/client"]}}

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "name": "lumen-engine-ryan-vo",
+  "owner": "A220man",
+  "email": "ryandtvo@gmail.com",
+  "domain": "AI/ML developer tools",
+  "workflows": [
+    "Define and retrieve skills for agent harnesses",
+    "Search and filter skills by harness, category, and tags",
+    "View skill details and delete"
+  ],
+  "auth": "oidc-keycloak-saml-broker",
+  "llm_providers": [
+    "openai-compatible",
+    "anthropic",
+    "gemini",
+    "ollama"
+  ],
+  "summary": "Work in progress: lumen-engine-ryan-vo",
+  "status": "work-in-progress"
+}
