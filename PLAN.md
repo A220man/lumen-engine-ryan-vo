@@ -4,7 +4,7 @@ Each round completes one feature or repair. Future items are planned, not implem
 
 ## Current round
 
-core-skeleton
+skill-engine
 
 ## Roadmap
 
@@ -24,7 +24,7 @@ Tests: `backend/tests/test_health.py`, `backend/tests/test_skills.py`, `backend/
 
 ### skill-engine — Skill Execution Engine
 
-Status: planned
+Status: in_progress
 
 Acceptance:
 - Skills can be defined, stored, and executed
