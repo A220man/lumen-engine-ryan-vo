@@ -44,11 +44,42 @@ export interface PaginatedSkills {
   pages: number;
 }
 
+export interface Execution {
+  id: string;
+  skill_id: string;
+  skill_version: string;
+  status: string;
+  input_data: string | null;
+  output_data: string | null;
+  error_message: string | null;
+  exit_code: number | null;
+  duration_ms: number | null;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+}
+
+export interface CreateExecution {
+  input_data?: string | null;
+  timeout_seconds?: number | null;
+  env_vars?: Record<string, string> | null;
+}
+
+export interface PaginatedExecutions {
+  items: Execution[];
+  total: number;
+  page: number;
+  per_page: number;
+  pages: number;
+}
+
+
 export interface HealthResponse {
   status: string;
   app: string;
   version: string;
 }
+
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 
@@ -115,4 +146,25 @@ export const api = {
 
   deleteSkill: (id: string) =>
     request<void>(`/skills/${id}`, { method: "DELETE" }),
+
+  executeSkill: (skillId: string, data: CreateExecution) =>
+    request<Execution>(`/skills/${skillId}/execute`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  listExecutions: (skillId: string, params?: {
+    status?: string;
+    page?: number;
+    per_page?: number;
+  }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set("status", params.status);
+    if (params?.page) q.set("page", String(params.page));
+    if (params?.per_page) q.set("per_page", String(params.per_page));
+    const query = q.toString() ? `?${q.toString()}` : "";
+    return request<PaginatedExecutions>(`/skills/${skillId}/executions${query}`);
+  },
+
+  getExecution: (id: string) => request<Execution>(`/executions/${id}`),
 };

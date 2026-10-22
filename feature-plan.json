@@ -1,1 +1,95 @@
-{"schema_version":1,"current_feature":"core-skeleton","features":[{"id":"core-skeleton","title":"Core FastAPI/React Skeleton with Auth & Database","status":"done","acceptance":["FastAPI app starts and serves health endpoint","React frontend builds and loads","SQLite database with migrations works","Basic tests pass"],"implementation":["backend/app/main.py","backend/app/api/routes.py","backend/app/api/schemas.py","backend/app/models/skill.py","backend/app/services/skill_service.py","backend/app/core/database.py","backend/app/core/config.py","frontend/src/App.tsx","frontend/src/api/client.ts","frontend/src/components/SkillList.tsx","frontend/src/pages/SkillCatalog.tsx","frontend/src/pages/SkillDetail.tsx","frontend/src/index.css"],"tests":["backend/tests/test_health.py","backend/tests/test_skills.py","backend/tests/conftest.py","frontend/src/pages/SkillCatalog.test.tsx"]},{"id":"skill-engine","title":"Skill Execution Engine","status":"planned","acceptance":["Skills can be defined, stored, and executed","Skill registry with versioning","Execution sandbox with timeout/resource limits","API for skill CRUD and execution"],"implementation":[],"tests":[]},{"id":"memory-vault","title":"Memory Vault & Continuous Learning","status":"planned","acceptance":["Session summaries persisted","Instinct extraction from sessions","Cross-harness memory search/recall","Memory vault API and UI"],"implementation":[],"tests":[]},{"id":"security-scanner","title":"AgentShield Security Scanner Integration","status":"planned","acceptance":["Scan agent configs for vulnerabilities","Secrets detection in prompts/hooks/MCP","Permission auditing","CI/CD integration ready"],"implementation":[],"tests":[]},{"id":"harness-adapters","title":"Multi-Harness Adapter System","status":"planned","acceptance":["Claude Code plugin manifest generation","Codex plugin manifest generation","Cursor/OpenCode adapter configs","Unified skill/agent format"],"implementation":[],"tests":[]},{"id":"dashboard-ui","title":"Developer Dashboard UI","status":"planned","acceptance":["Skill browser and execution UI","Memory vault explorer","Security scan results viewer","Harness adapter status"],"implementation":[],"tests":[]}]}
+{
+  "schema_version": 1,
+  "current_feature": "skill-engine",
+  "features": [
+    {
+      "id": "core-skeleton",
+      "title": "Core FastAPI/React Skeleton with Auth & Database",
+      "status": "done",
+      "acceptance": [
+        "FastAPI app starts and serves health endpoint",
+        "React frontend builds and loads",
+        "SQLite database with migrations works",
+        "Basic tests pass"
+      ],
+      "implementation": [
+        "backend/app/main.py",
+        "backend/app/api/routes.py",
+        "backend/app/api/schemas.py",
+        "backend/app/models/skill.py",
+        "backend/app/services/skill_service.py",
+        "backend/app/core/database.py",
+        "backend/app/core/config.py",
+        "frontend/src/App.tsx",
+        "frontend/src/api/client.ts",
+        "frontend/src/components/SkillList.tsx",
+        "frontend/src/pages/SkillCatalog.tsx",
+        "frontend/src/pages/SkillDetail.tsx",
+        "frontend/src/index.css"
+      ],
+      "tests": [
+        "backend/tests/test_health.py",
+        "backend/tests/test_skills.py",
+        "backend/tests/conftest.py",
+        "frontend/src/pages/SkillCatalog.test.tsx"
+      ]
+    },
+    {
+      "id": "skill-engine",
+      "title": "Skill Execution Engine",
+      "status": "in_progress",
+      "acceptance": [
+        "Skills can be defined, stored, and executed",
+        "Skill registry with versioning",
+        "Execution sandbox with timeout/resource limits",
+        "API for skill CRUD and execution"
+      ],
+      "implementation": [],
+      "tests": []
+    },
+    {
+      "id": "memory-vault",
+      "title": "Memory Vault & Continuous Learning",
+      "status": "planned",
+      "acceptance": [
+        "Session summaries persisted",
+        "Instinct extraction from sessions",
+        "Cross-harness memory search/recall",
+        "Memory vault API and UI"
+      ]
+    },
+    {
+      "id": "security-scanner",
+      "title": "AgentShield Security Scanner Integration",
+      "status": "planned",
+      "acceptance": [
+        "Scan agent configs for vulnerabilities",
+        "Secrets detection in prompts/hooks/MCP",
+        "Permission auditing",
+        "CI/CD integration ready"
+      ]
+    },
+    {
+      "id": "harness-adapters",
+      "title": "Multi-Harness Adapter System",
+      "status": "planned",
+      "acceptance": [
+        "Claude Code plugin manifest generation",
+        "Codex plugin manifest generation",
+        "Cursor/OpenCode adapter configs",
+        "Unified skill/agent format"
+      ]
+    },
+    {
+      "id": "dashboard-ui",
+      "title": "Developer Dashboard UI",
+      "status": "planned",
+      "acceptance": [
+        "Skill browser and execution UI",
+        "Memory vault explorer",
+        "Security scan results viewer",
+        "Harness adapter status"
+      ]
+    }
+  ]
+}

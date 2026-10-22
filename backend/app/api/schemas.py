@@ -60,3 +60,29 @@ class SkillRead(SkillBase):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+
+class ExecutionCreate(BaseModel):
+    """Fields required to execute a skill."""
+
+    input_data: str | None = Field(default=None, max_length=10000)
+    timeout_seconds: int | None = Field(default=None, ge=1, le=300)
+    env_vars: dict[str, str] | None = Field(default=None, max_length=50)
+
+
+class ExecutionRead(BaseModel):
+    """Execution response payload."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    skill_id: uuid.UUID
+    skill_version: str
+    status: str
+    input_data: str | None
+    output_data: str | None
+    error_message: str | None
+    exit_code: int | None
+    duration_ms: int | None
+    created_at: datetime
+    started_at: datetime | None
+    completed_at: datetime | None
