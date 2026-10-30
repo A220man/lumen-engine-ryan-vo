@@ -186,6 +186,150 @@ async def test_update_skill(client: AsyncClient) -> None:
     assert data["harness"] == "claude-code"
 
 
+
+async def test_create_skill_version(client: AsyncClient) -> None:
+    """Creating a skill version snapshots current state."""
+    resp = await client.post("/api/v1/skills", json=SKILL_PAYLOAD)
+    skill_id = resp.json()["id"]
+
+    # Create a version
+    resp = await client.post(
+        f"/api/v1/skills/{skill_id}/versions",
+        json={"version": "1.1.0", "created_by": "test-user"},
+    )
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["skill_id"] == skill_id
+    assert data["version"] == "1.1.0"
+    assert data["name"] == SKILL_PAYLOAD["name"]
+    assert data["command"] == SKILL_PAYLOAD["command"]
+    assert data["created_by"] == "test-user"
+    assert "created_at" in data
+
+
+async def test_create_duplicate_version_returns_400(client: AsyncClient) -> None:
+    """Creating a duplicate version returns 400."""
+    resp = await client.post("/api/v1/skills", json=SKILL_PAYLOAD)
+    skill_id = resp.json()["id"]
+
+    await client.post(
+        f"/api/v1/skills/{skill_id}/versions",
+        json={"version": "1.1.0"},
+    )
+    resp = await client.post(
+        f"/api/v1/skills/{skill_id}/versions",
+        json={"version": "1.1.0"},
+    )
+    assert resp.status_code == 400
+
+
+async def test_create_version_nonexistent_skill_returns_404(client: AsyncClient) -> None:
+    """Creating a version for non-existent skill returns 404."""
+    resp = await client.post(
+        f"/api/v1/skills/{uuid.uuid4()}/versions",
+        json={"version": "1.1.0"},
+    )
+    assert resp.status_code == 404
+
+
+async def test_list_skill_versions(client: AsyncClient) -> None:
+    """Listing skill versions returns all versions newest first."""
+    resp = await client.post("/api/v1/skills", json=SKILL_PAYLOAD)
+    skill_id = resp.json()["id"]
+
+    await client.post(
+        f"/api/v1/skills/{skill_id}/versions",
+        json={"version": "1.1.0"},
+    )
+    await client.post(
+        f"/api/v1/skills/{skill_id}/versions",
+        json={"version": "1.2.0"},
+    )
+
+    resp = await client.get(f"/api/v1/skills/{skill_id}/versions")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 3  # initial 1.0.0 + 1.1.0 + 1.2.0
+    # Newest first
+    assert data[0]["version"] == "1.2.0"
+    assert data[1]["version"] == "1.1.0"
+    assert data[2]["version"] == "1.0.0"
+
+async def test_get_skill_version(client: AsyncClient) -> None:
+    """Getting a specific skill version works."""
+    resp = await client.post("/api/v1/skills", json=SKILL_PAYLOAD)
+    skill_id = resp.json()["id"]
+
+    await client.post(
+        f"/api/v1/skills/{skill_id}/versions",
+        json={"version": "1.1.0"},
+    )
+
+    resp = await client.get(f"/api/v1/skills/{skill_id}/versions/1.1.0")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["version"] == "1.1.0"
+    assert data["skill_id"] == skill_id
+
+
+async def test_get_nonexistent_version_returns_404(client: AsyncClient) -> None:
+    """Getting a non-existent version returns 404."""
+    resp = await client.post("/api/v1/skills", json=SKILL_PAYLOAD)
+    skill_id = resp.json()["id"]
+
+    resp = await client.get(f"/api/v1/skills/{skill_id}/versions/9.9.9")
+    assert resp.status_code == 404
+
+
+async def test_rollback_skill(client: AsyncClient) -> None:
+    """Rolling back a skill restores previous version."""
+    resp = await client.post("/api/v1/skills", json=SKILL_PAYLOAD)
+    skill_id = resp.json()["id"]
+
+    # Update the skill
+    await client.put(
+        f"/api/v1/skills/{skill_id}",
+        json={"name": "updated-name", "command": "new command"},
+    )
+
+    # Create a version of the updated state
+    await client.post(
+        f"/api/v1/skills/{skill_id}/versions",
+        json={"version": "2.0.0"},
+    )
+
+    # Rollback to original version (1.0.0 - the initial skill state)
+    resp = await client.post(
+        f"/api/v1/skills/{skill_id}/rollback",
+        json={"version": "1.0.0"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["name"] == SKILL_PAYLOAD["name"]
+    assert data["command"] == SKILL_PAYLOAD["command"]
+    assert data["version"] == "1.0.0"
+
+
+async def test_rollback_nonexistent_version_returns_404(client: AsyncClient) -> None:
+    """Rolling back to non-existent version returns 404."""
+    resp = await client.post("/api/v1/skills", json=SKILL_PAYLOAD)
+    skill_id = resp.json()["id"]
+
+    resp = await client.post(
+        f"/api/v1/skills/{skill_id}/rollback",
+        json={"version": "9.9.9"},
+    )
+    assert resp.status_code == 404
+
+
+async def test_rollback_nonexistent_skill_returns_404(client: AsyncClient) -> None:
+    """Rolling back non-existent skill returns 404."""
+    resp = await client.post(
+        f"/api/v1/skills/{uuid.uuid4()}/rollback",
+        json={"version": "1.0.0"},
+    )
+    assert resp.status_code == 404
+
 async def test_update_nonexistent_skill_returns_404(client: AsyncClient) -> None:
     """PUT on a non-existent skill returns 404."""
     resp = await client.put(
