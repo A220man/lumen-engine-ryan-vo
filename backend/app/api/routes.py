@@ -6,7 +6,16 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
-from app.api.schemas import ExecutionCreate, ExecutionRead, SkillCreate, SkillRead, SkillUpdate
+from app.api.schemas import (
+    ExecutionCreate,
+    ExecutionRead,
+    SkillCreate,
+    SkillRead,
+    SkillUpdate,
+    SkillVersionCreate,
+    SkillVersionRead,
+    SkillRollback,
+)
 from app.services.execution_service import ExecutionService
 from app.models.execution import ExecutionStatus
 from app.core.config import Settings, get_settings
@@ -127,6 +136,93 @@ async def delete_skill(
             detail=f"Skill {skill_id} not found",
         )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/skills/{skill_id}/versions",
+    response_model=SkillVersionRead,
+    status_code=status.HTTP_201_CREATED,
+    tags=["versions"],
+)
+async def create_skill_version(
+    skill_id: uuid.UUID,
+    payload: SkillVersionCreate,
+    service: Annotated[SkillService, Depends(_get_skill_service)],
+) -> SkillVersionRead:
+    """Create a new version snapshot of a skill."""
+    try:
+        skill_version = await service.create_version(
+            skill_id=skill_id,
+            version=payload.version,
+            created_by=payload.created_by,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    if skill_version is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Skill {skill_id} not found",
+        )
+    return SkillVersionRead.model_validate(skill_version)
+
+
+@router.get("/skills/{skill_id}/versions", response_model=list[SkillVersionRead], tags=["versions"])
+async def list_skill_versions(
+    skill_id: uuid.UUID,
+    service: Annotated[SkillService, Depends(_get_skill_service)],
+) -> list[SkillVersionRead]:
+    """List all versions for a skill."""
+    skill = await service.get(skill_id)
+    if skill is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Skill {skill_id} not found",
+        )
+    versions = await service.list_versions(skill_id)
+    return [SkillVersionRead.model_validate(v) for v in versions]
+
+
+@router.get(
+    "/skills/{skill_id}/versions/{version}",
+    response_model=SkillVersionRead,
+    tags=["versions"],
+)
+async def get_skill_version(
+    skill_id: uuid.UUID,
+    version: str,
+    service: Annotated[SkillService, Depends(_get_skill_service)],
+) -> SkillVersionRead:
+    """Get a specific version of a skill."""
+    skill_version = await service.get_version(skill_id, version)
+    if skill_version is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Version {version} not found for skill {skill_id}",
+        )
+    return SkillVersionRead.model_validate(skill_version)
+
+
+@router.post(
+    "/skills/{skill_id}/rollback",
+    response_model=SkillRead,
+    tags=["versions"],
+)
+async def rollback_skill(
+    skill_id: uuid.UUID,
+    payload: SkillRollback,
+    service: Annotated[SkillService, Depends(_get_skill_service)],
+) -> SkillRead:
+    """Rollback a skill to a previous version."""
+    skill = await service.rollback_to_version(skill_id, payload.version)
+    if skill is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Skill {skill_id} not found or version {payload.version} does not exist",
+        )
+    return skill
 
 
 @router.post("/skills/{skill_id}/execute", response_model=ExecutionRead, tags=["executions"])

@@ -60,6 +60,40 @@ class SkillRead(SkillBase):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+class SkillVersionRead(BaseModel):
+    """Skill version response payload."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    skill_id: uuid.UUID
+    version: str
+    name: str
+    description: str | None
+    harness: str
+    command: str
+    category: str | None
+    tags: list[str]
+    is_active: bool
+    created_at: datetime
+    created_by: str | None
+
+
+class SkillVersionCreate(BaseModel):
+    """Fields to create a new skill version (for versioning an existing skill)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    version: str = Field(..., min_length=1, max_length=50)
+    created_by: str | None = Field(default=None, max_length=100)
+
+
+class SkillRollback(BaseModel):
+    """Fields to rollback a skill to a previous version."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    version: str = Field(..., min_length=1, max_length=50)
 
 class ExecutionCreate(BaseModel):
     """Fields required to execute a skill."""

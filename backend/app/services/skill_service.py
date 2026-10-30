@@ -2,14 +2,14 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 from sqlalchemy import String, cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.skill import Harness, Skill
+from app.models.skill_version import SkillVersion
 from app.api.schemas import SkillCreate, SkillRead, SkillUpdate
-
-
 class SkillService:
     """Service layer for skill CRUD and search operations."""
 
@@ -31,10 +31,25 @@ class SkillService:
             version=payload.version,
         )
         self._session.add(skill)
+        await self._session.flush()
+
+        # Create initial version snapshot
+        skill_version = SkillVersion(
+            skill_id=skill.id,
+            version=skill.version,
+            name=skill.name,
+            description=skill.description,
+            harness=skill.harness,
+            command=skill.command,
+            category=skill.category,
+            tags=skill.tags,
+            is_active=skill.is_active,
+        )
+        self._session.add(skill_version)
+
         await self._session.commit()
         await self._session.refresh(skill)
         return SkillRead.model_validate(skill)
-
     async def get(self, skill_id: uuid.UUID) -> SkillRead | None:
         """Retrieve a single skill by ID."""
         skill = await self._session.get(Skill, skill_id)
@@ -112,6 +127,92 @@ class SkillService:
         await self._session.delete(skill)
         await self._session.commit()
         return True
+
+    async def create_version(
+        self, skill_id: uuid.UUID, version: str, created_by: str | None = None
+    ) -> SkillVersion | None:
+        """Create a new version snapshot of an existing skill."""
+        skill = await self._session.get(Skill, skill_id)
+        if skill is None:
+            return None
+
+        # Check if version already exists
+        existing = await self._session.execute(
+            select(SkillVersion).where(
+                SkillVersion.skill_id == skill_id,
+                SkillVersion.version == version,
+            )
+        )
+        if existing.scalar_one_or_none():
+            raise ValueError(f"Version {version} already exists for skill {skill_id}")
+
+        skill_version = SkillVersion(
+            skill_id=skill.id,
+            version=version,
+            name=skill.name,
+            description=skill.description,
+            harness=skill.harness,
+            command=skill.command,
+            category=skill.category,
+            tags=skill.tags,
+            is_active=skill.is_active,
+            created_by=created_by,
+        )
+        self._session.add(skill_version)
+        await self._session.commit()
+        await self._session.refresh(skill_version)
+        return skill_version
+
+    async def list_versions(self, skill_id: uuid.UUID) -> list[SkillVersion]:
+        """List all versions for a skill, newest first."""
+        result = await self._session.execute(
+            select(SkillVersion)
+            .where(SkillVersion.skill_id == skill_id)
+            .order_by(SkillVersion.created_at.desc())
+        )
+        return list(result.scalars().all())
+
+    async def get_version(
+        self, skill_id: uuid.UUID, version: str
+    ) -> SkillVersion | None:
+        """Get a specific version of a skill."""
+        result = await self._session.execute(
+            select(SkillVersion).where(
+                SkillVersion.skill_id == skill_id,
+                SkillVersion.version == version,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def rollback_to_version(
+        self, skill_id: uuid.UUID, version: str
+    ) -> SkillRead | None:
+        """Rollback a skill to a previous version."""
+        skill = await self._session.get(Skill, skill_id)
+        if skill is None:
+            return None
+
+        skill_version = await self.get_version(skill_id, version)
+        if skill_version is None:
+            return None
+
+        # Create a version snapshot of current state before rollback
+        current_version = f"{skill.version}-pre-rollback-{int(datetime.now(timezone.utc).timestamp())}"
+        await self.create_version(skill_id, current_version)
+
+        # Apply the version
+        skill.name = skill_version.name
+        skill.description = skill_version.description
+        skill.harness = skill_version.harness
+        skill.command = skill_version.command
+        skill.category = skill_version.category
+        skill.tags = skill_version.tags
+        skill.is_active = skill_version.is_active
+        skill.version = skill_version.version
+
+        await self._session.commit()
+        await self._session.refresh(skill)
+        return SkillRead.model_validate(skill)
 
     @staticmethod
     def _normalize_harness(value: str) -> str:
