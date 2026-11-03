@@ -35,3 +35,10 @@ dist/
 # Docker
 *.pid
 venv/
+*.pyc
+*.db-wal
+*.db-shm
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-wal
+*.sqlite3-shm
