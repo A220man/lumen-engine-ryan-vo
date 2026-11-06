@@ -4,7 +4,10 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import resource
+import signal
 import subprocess
+import sys
 import time
 import uuid
 from dataclasses import dataclass
@@ -12,12 +15,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.execution import Execution, ExecutionStatus
 from app.models.skill import Skill
 from app.core.config import get_settings
+from app.api.schemas import ExecutionRead
 
 
 @dataclass
@@ -73,7 +77,7 @@ class ExecutionService:
         result = await self._run_skill(
             skill=skill,
             input_data=input_data,
-            timeout_seconds=timeout_seconds or self.DEFAULT_TIMEOUT_SECONDS,
+            timeout_seconds=timeout_seconds or self._settings.sandbox_timeout_seconds,
             env_vars=env_vars,
         )
 
@@ -91,6 +95,29 @@ class ExecutionService:
 
         return execution
 
+    def _make_preexec_fn(
+        self,
+        memory_mb: int,
+        cpu_seconds: int,
+        max_processes: int,
+    ):
+        """Create a preexec_fn that sets resource limits in the child process."""
+        def set_limits() -> None:
+            # Set memory limit (address space) in bytes
+            memory_bytes = memory_mb * 1024 * 1024
+            resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
+
+            # Set CPU time limit in seconds
+            resource.setrlimit(resource.RLIMIT_CPU, (cpu_seconds, cpu_seconds))
+
+            # Set max processes limit
+            resource.setrlimit(resource.RLIMIT_NPROC, (max_processes, max_processes))
+
+            # Disable core dumps
+            resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+
+        return set_limits
+
     async def _run_skill(
         self,
         skill: Skill,
@@ -98,7 +125,7 @@ class ExecutionService:
         timeout_seconds: int,
         env_vars: dict[str, str] | None,
     ) -> ExecutionResult:
-        """Run the skill command in a sandboxed environment."""
+        """Run the skill command in a sandboxed environment with resource limits."""
         start_time = time.perf_counter()
 
         # Prepare environment
@@ -116,6 +143,13 @@ class ExecutionService:
         # Build command - use shell to support pipes and redirections
         command = skill.command
 
+        # Get sandbox limits from settings
+        memory_mb = self._settings.sandbox_memory_mb
+        cpu_seconds = self._settings.sandbox_cpu_seconds
+        max_processes = self._settings.sandbox_max_processes
+
+        preexec_fn = self._make_preexec_fn(memory_mb, cpu_seconds, max_processes)
+
         try:
             # Run with timeout and resource limits
             process = await asyncio.create_subprocess_shell(
@@ -124,6 +158,7 @@ class ExecutionService:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 env=env,
+                preexec_fn=preexec_fn,
                 # Limit working directory for safety
                 cwd=self._settings.demo_mode and Path.cwd() or Path.cwd(),
             )
@@ -152,7 +187,20 @@ class ExecutionService:
             if len(output) > self.DEFAULT_MAX_OUTPUT_SIZE:
                 output = output[: self.DEFAULT_MAX_OUTPUT_SIZE] + "\n[OUTPUT TRUNCATED]"
 
-            if process.returncode == 0:
+            # Check if process was killed due to resource limits
+            if process.returncode is not None and process.returncode < 0:
+                # Negative return code means killed by signal
+                signal_num = -process.returncode
+                if signal_num == signal.SIGXCPU:
+                    status = ExecutionStatus.FAILED
+                    error = (error or "") + f"\n[CPU time limit exceeded ({cpu_seconds}s)]"
+                elif signal_num == signal.SIGKILL:
+                    # Could be OOM killer or manual kill
+                    status = ExecutionStatus.FAILED
+                    error = (error or "") + f"\n[Process killed, possible memory limit ({memory_mb}MB)]"
+                else:
+                    status = ExecutionStatus.FAILED
+            elif process.returncode == 0:
                 status = ExecutionStatus.COMPLETED
             else:
                 status = ExecutionStatus.FAILED
@@ -180,38 +228,35 @@ class ExecutionService:
 
     async def list_executions(
         self,
-        skill_id: uuid.UUID | None = None,
-        status: ExecutionStatus | None = None,
         page: int = 1,
         per_page: int = 20,
+        skill_id: uuid.UUID | None = None,
+        status: str | None = None,
     ) -> dict[str, Any]:
         """List executions with pagination and filtering."""
-        query = select(Execution).order_by(Execution.created_at.desc())
-        count_query = select(func.count(Execution.id))
+        query = select(Execution)
 
         if skill_id:
             query = query.where(Execution.skill_id == skill_id)
-            count_query = count_query.where(Execution.skill_id == skill_id)
-
         if status:
-            query = query.where(Execution.status == status.value)
-            count_query = count_query.where(Execution.status == status.value)
+            query = query.where(Execution.status == status)
 
-        total = (await self._session.execute(count_query)).scalar_one()
+        # Total count
+        count_query = select(func.count()).select_from(query.subquery())
+        total = await self._session.scalar(count_query) or 0
 
+        # Pagination
+        query = query.order_by(Execution.created_at.desc())
         query = query.offset((page - 1) * per_page).limit(per_page)
+
         result = await self._session.execute(query)
-        executions = result.scalars().all()
+        items = result.scalars().all()
 
         return {
-            "items": [ExecutionRead.model_validate(e) for e in executions],
+            "items": [ExecutionRead.model_validate(e) for e in items],
             "total": total,
             "page": page,
             "per_page": per_page,
             "pages": (total + per_page - 1) // per_page,
         }
 
-
-# Import needed for list_executions
-from sqlalchemy import func
-from app.api.schemas import ExecutionRead
