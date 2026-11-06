@@ -24,13 +24,17 @@ Tests: `backend/tests/test_health.py`, `backend/tests/test_skills.py`, `backend/
 
 ### skill-engine — Skill Execution Engine
 
-Status: in_progress
+Status: done
 
 Acceptance:
 - Skills can be defined, stored, and executed
 - Skill registry with versioning
 - Execution sandbox with timeout/resource limits
 - API for skill CRUD and execution
+
+Implementation: `backend/app/services/execution_service.py`, `backend/app/models/execution.py`, `backend/app/models/skill_version.py`, `backend/app/api/routes.py`, `backend/app/api/schemas.py`, `backend/app/core/config.py`
+
+Tests: `backend/tests/test_executions.py`
 
 ### memory-vault — Memory Vault & Continuous Learning
 

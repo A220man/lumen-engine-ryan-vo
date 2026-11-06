@@ -47,6 +47,11 @@ class Settings(BaseSettings):
 
     # CORS
     cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    # Sandbox execution limits
+    sandbox_memory_mb: int = Field(default=512, description="Memory limit for skill execution in MB")
+    sandbox_cpu_seconds: int = Field(default=30, description="CPU time limit for skill execution in seconds")
+    sandbox_max_processes: int = Field(default=50, description="Maximum number of processes for skill execution")
+    sandbox_timeout_seconds: int = Field(default=30, description="Wall-clock timeout for skill execution")
 
     # Demo mode (local only)
     demo_mode: bool = False

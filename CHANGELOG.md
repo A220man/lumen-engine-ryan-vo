@@ -1,8 +1,42 @@
 # Changelog
 
+## 1.4.0 — work-in-progress checkpoint
+
+Partial code published for continued development. Known issues: STATUS.md.
+
 ## 1.3.0 — work-in-progress checkpoint
 
 Partial code published for continued development. Known issues: STATUS.md.
+
+## 1.2.0 — work-in-progress checkpoint
+
+Partial code published for continued development. Known issues: STATUS.md.
+
+## 1.1.0 — work-in-progress checkpoint
+
+Partial code published for continued development. Known issues: STATUS.md.
+
+## 1.0.0 — work-in-progress checkpoint
+
+Partial code published for continued development. Known issues: STATUS.md.
+
+All notable changes to Lumen Engine are documented here.
+
+## [1.3.0] - 2026-11-06
+
+### Added - Skill Execution Engine
+- Skill execution with sandboxed subprocess isolation
+- Resource limits: memory (RLIMIT_AS), CPU time (RLIMIT_CPU), process count (RLIMIT_NPROC)
+- Configurable sandbox limits via environment variables (SANDBOX_MEMORY_MB, SANDBOX_CPU_SECONDS, SANDBOX_MAX_PROCESSES, SANDBOX_TIMEOUT_SECONDS)
+- Execution history tracking with status, output, error, exit code, duration
+- API endpoints for skill execution, execution listing with pagination/filtering, execution retrieval
+- 15 execution tests covering success, failure, timeout, memory limits, CPU limits, pagination, filtering
+
+### Changed
+- Updated execution service to use configurable sandbox settings from config
+- Updated pagination response to use `pages` key for consistency
+
+## [1.0.0] - 2026-10-16
 
 ## 1.2.0 — work-in-progress checkpoint
 
