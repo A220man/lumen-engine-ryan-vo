@@ -73,6 +73,11 @@ class ExecutionService:
         self._session.add(execution)
         await self._session.flush()
 
+        # Record start time
+        start_time = datetime.now(timezone.utc)
+        execution.started_at = start_time
+        execution.status = ExecutionStatus.RUNNING
+
         # Execute the skill
         result = await self._run_skill(
             skill=skill,
@@ -87,7 +92,6 @@ class ExecutionService:
         execution.error_message = result.error
         execution.exit_code = result.exit_code
         execution.duration_ms = result.duration_ms
-        execution.started_at = datetime.now(timezone.utc)
         execution.completed_at = datetime.now(timezone.utc)
 
         await self._session.commit()
@@ -101,20 +105,39 @@ class ExecutionService:
         cpu_seconds: int,
         max_processes: int,
     ):
-        """Create a preexec_fn that sets resource limits in the child process."""
+        """Create a preexec_fn that sets resource limits in the child process.
+        
+        Gracefully handles platforms where resource limits are not available (e.g., macOS).
+        """
         def set_limits() -> None:
-            # Set memory limit (address space) in bytes
-            memory_bytes = memory_mb * 1024 * 1024
-            resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
+            try:
+                # Set memory limit (address space) in bytes
+                memory_bytes = memory_mb * 1024 * 1024
+                resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
+            except (AttributeError, ValueError, OSError):
+                # RLIMIT_AS not available or not supported on this platform
+                pass
 
-            # Set CPU time limit in seconds
-            resource.setrlimit(resource.RLIMIT_CPU, (cpu_seconds, cpu_seconds))
+            try:
+                # Set CPU time limit in seconds
+                resource.setrlimit(resource.RLIMIT_CPU, (cpu_seconds, cpu_seconds))
+            except (AttributeError, ValueError, OSError):
+                # RLIMIT_CPU not available or not supported
+                pass
 
-            # Set max processes limit
-            resource.setrlimit(resource.RLIMIT_NPROC, (max_processes, max_processes))
+            try:
+                # Set max processes limit
+                resource.setrlimit(resource.RLIMIT_NPROC, (max_processes, max_processes))
+            except (AttributeError, ValueError, OSError):
+                # RLIMIT_NPROC not available or not supported
+                pass
 
-            # Disable core dumps
-            resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+            try:
+                # Disable core dumps
+                resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+            except (AttributeError, ValueError, OSError):
+                # RLIMIT_CORE not available or not supported
+                pass
 
         return set_limits
 

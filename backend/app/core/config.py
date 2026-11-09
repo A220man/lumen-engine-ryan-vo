@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     # Sandbox execution limits
     sandbox_memory_mb: int = Field(default=512, description="Memory limit for skill execution in MB")
     sandbox_cpu_seconds: int = Field(default=30, description="CPU time limit for skill execution in seconds")
-    sandbox_max_processes: int = Field(default=50, description="Maximum number of processes for skill execution")
+    sandbox_max_processes: int = Field(default=200, description="Maximum number of processes for skill execution")
     sandbox_timeout_seconds: int = Field(default=30, description="Wall-clock timeout for skill execution")
 
     # Demo mode (local only)
