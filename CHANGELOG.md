@@ -1,9 +1,17 @@
 # Changelog
 
+## 1.5.0 — work-in-progress checkpoint
+
+Partial code published for continued development. Known issues: STATUS.md.
+
 ## 1.4.0 — work-in-progress checkpoint
 
 Partial code published for continued development. Known issues: STATUS.md.
 
+### Fixed - Skill Execution Engine Improvements
+- Fixed execution timestamp ordering: `started_at` now set before execution begins, `completed_at` after execution finishes
+- Improved cross-platform compatibility of resource limits in sandbox (graceful handling on macOS/other platforms where RLIMIT_* may not be available)
+- Increased default max processes limit from 50 to 200 to avoid "Cannot fork" errors in constrained environments
 ## 1.3.0 — work-in-progress checkpoint
 
 Partial code published for continued development. Known issues: STATUS.md.
