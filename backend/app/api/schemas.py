@@ -120,3 +120,23 @@ class ExecutionRead(BaseModel):
     created_at: datetime
     started_at: datetime | None
     completed_at: datetime | None
+
+class SessionSummaryCreate(BaseModel):
+    """Fields required to create a session summary."""
+    session_id: str = Field(..., min_length=1, max_length=255)
+    skill_id: str | None = Field(default=None, max_length=36)
+    summary_text: str = Field(..., min_length=1)
+    instinct_data: dict[str, Any] | None = Field(default=None, description="Extracted instinct data from the session")
+
+
+class SessionSummaryRead(BaseModel):
+    """Session summary response payload."""
+    id: uuid.UUID
+    session_id: str
+    skill_id: uuid.UUID | None
+    summary_text: str
+    instinct_data: dict[str, Any] | None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
