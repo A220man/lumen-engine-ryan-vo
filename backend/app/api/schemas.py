@@ -123,10 +123,10 @@ class ExecutionRead(BaseModel):
 
 class SessionSummaryCreate(BaseModel):
     """Fields required to create a session summary."""
+    model_config = ConfigDict(extra="forbid")
     session_id: str = Field(..., min_length=1, max_length=255)
     skill_id: str | None = Field(default=None, max_length=36)
     summary_text: str = Field(..., min_length=1)
-    instinct_data: dict[str, Any] | None = Field(default=None, description="Extracted instinct data from the session")
 
 
 class SessionSummaryRead(BaseModel):
