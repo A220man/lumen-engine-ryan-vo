@@ -38,7 +38,7 @@ Tests: `backend/tests/test_executions.py`
 
 ### memory-vault — Memory Vault & Continuous Learning
 
-Status: planned
+Status: in_progress
 
 Acceptance:
 - Session summaries persisted

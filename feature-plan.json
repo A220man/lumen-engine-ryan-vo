@@ -59,7 +59,7 @@
     {
       "id": "memory-vault",
       "title": "Memory Vault & Continuous Learning",
-      "status": "planned",
+      "status": "in_progress",
       "acceptance": [
         "Session summaries persisted",
         "Instinct extraction from sessions",
