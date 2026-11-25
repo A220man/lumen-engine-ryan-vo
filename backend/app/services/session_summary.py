@@ -1,5 +1,6 @@
 """Session summary service for memory vault persistence."""
 from __future__ import annotations
+from datetime import datetime, timezone
 
 import uuid
 from typing import Any, Optional
